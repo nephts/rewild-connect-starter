@@ -1,0 +1,9 @@
+rewild-connect-starter/
+├─ functions/
+│  └─ _worker.ts        ← Cloudflare Pages Functions entry (exact name)
+├─ schema.sql           ← D1 database schema + seed codes
+├─ wrangler.toml        ← D1 binding + Pages config
+├─ src/
+│  └─ ... (your React app)
+└─ public/
+   └─ ... (_redirects, _headers, etc.)
