@@ -1,13 +1,10 @@
 // functions/api/enter-code.ts
-const ACCESS = {
-  VIEWER: 'VIEW-123',
-  VOLUNTEER: 'VOL-123',
-  INTERN: 'INT-123',
-  ADMIN: 'ADMIN-123',
-};
+export async function onRequestPost({ request, env }: { request: Request; env: any }) {
+  // Ensure DB + seeds exist (this will create access_codes if missing)
+  await import('./_helpers').then(m => m.ensureDatabase(env));
 
-export async function onRequestPost({ request }: { request: Request }) {
-  const { code } = await request.json().catch(() => ({} as any));
+  const body = await request.json().catch(() => ({} as any));
+  const code = (body && body.code) || '';
   if (!code) {
     return new Response(JSON.stringify({ ok: false, error: 'code required' }), {
       status: 400,
@@ -15,27 +12,25 @@ export async function onRequestPost({ request }: { request: Request }) {
     });
   }
 
-  let role: string | null = null;
-  if (code === ACCESS.ADMIN) role = 'Admin';
-  else if (code === ACCESS.INTERN) role = 'Intern';
-  else if (code === ACCESS.VOLUNTEER) role = 'Volunteer';
-  else if (code === ACCESS.VIEWER) role = 'Viewer';
-
-  if (!role) {
-    return new Response(JSON.stringify({ ok: false, error: 'invalid code' }), {
+  // Look up the code in the DB (access_codes table). This verifies demo codes are present.
+  const helpers = await import('./_helpers');
+  const row = await helpers.dbFirst(env, 'SELECT role, active FROM access_codes WHERE code = ?', code);
+  if (!row || !row.role || Number(row.active || 0) === 0) {
+    return new Response(JSON.stringify({ ok: false, error: 'invalid or inactive code' }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
     });
   }
 
-  const thirtyDays = 60 * 60 * 24 * 30;
-  const set = (name: string, value: string) =>
-    `${name}=${value}; Path=/; SameSite=Lax; HttpOnly; Max-Age=${thirtyDays}`;
+  const role = String(row.role);
+
+  // Set a role cookie server-side. If COOKIE_SECRET is present in env, cookie will be signed.
+  const cookieHeader = await helpers.setSignedCookie('role', role, env?.COOKIE_SECRET, { path: '/', httpOnly: true, sameSite: 'lax', maxAge: 60 * 60 * 24 * 30 });
 
   return new Response(JSON.stringify({ ok: true, role }), {
     headers: {
       'Content-Type': 'application/json',
-      'Set-Cookie': set('role', role),
+      'Set-Cookie': cookieHeader,
     },
   });
 }
