@@ -26,11 +26,42 @@ CREATE TABLE IF NOT EXISTS announcements (
   published INTEGER NOT NULL DEFAULT 1
 );
 
--- global chat messages
-CREATE TABLE IF NOT EXISTS global_messages (
+-- messages (global chat)
+CREATE TABLE IF NOT EXISTS messages (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL,
   body TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+
+-- photos (simple record of uploaded/hosted photos)
+CREATE TABLE IF NOT EXISTS photos (
+  id TEXT PRIMARY KEY,
+  url TEXT NOT NULL,
+  caption TEXT,
+  created_by TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+
+-- shifts (events/shift slots)
+CREATE TABLE IF NOT EXISTS shifts (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT,
+  location TEXT,
+  start_ts INTEGER NOT NULL,
+  end_ts INTEGER,
+  capacity INTEGER NOT NULL DEFAULT 0,
+  created_by TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  published INTEGER NOT NULL DEFAULT 1
+);
+
+-- shift signups
+CREATE TABLE IF NOT EXISTS shift_signups (
+  id TEXT PRIMARY KEY,
+  shift_id TEXT NOT NULL,
+  user_id TEXT NOT NULL,
   created_at INTEGER NOT NULL
 );
 
