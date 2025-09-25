@@ -8,6 +8,20 @@ npm run dev
 
 Demo access codes (no backend yet): `VIEW-123`, `VOL-123`, `INT-123`, `ADMIN-123`
 
+## Worker-backed auth
+```bash
+# first time
+cp .dev.vars.example .dev.vars   # set COOKIE_SECRET
+npm run build                     # ensures dist/ exists
+npx wrangler d1 execute rewild-db --local --file=schema.sql
+
+# run worker + build watchers (serves http://127.0.0.1:8788)
+npm run dev:worker
+
+# optional: run Vite dev alongside for HMR (proxies /api to worker)
+# npm run dev
+```
+
 ## Build
 ```bash
 npm run build
@@ -21,5 +35,5 @@ npm run preview
 - Route base: `/`
 
 ## Notes
-- State is in-memory (Zustand). Wire it to Cloudflare D1/Supabase later.
-- Replace demo access codes with a real auth flow when ready.
+- Auth uses the Cloudflare Worker + D1 flow locally and in Pages; the dashboard data is still in-memory mock state.
+- Rotate the demo access codes once real onboarding is ready.

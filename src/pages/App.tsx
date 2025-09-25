@@ -71,6 +71,8 @@ function Header() {
 function AuthPanel() {
   const setRole = useStore(s => s.setRole)
   const setMe   = useStore(s => s.setMe)
+  const localLogin = useStore(s => s.login)
+  const me = useStore(s => s.me)
 
   const [mode, setMode] = React.useState<'signup'|'login'|'code'>('signup')
   const [first, setFirst] = React.useState('')
@@ -89,15 +91,50 @@ function AuthPanel() {
   }
 
   async function handle(action: 'signup'|'login'|'code') {
+    setError('')
+
+    if (action === 'signup') {
+      try {
+        await post('/api/signup', { firstName:first, lastName:last, email, password })
+        await refreshMe()
+        setMode('code')
+      } catch (e: any) {
+        setError(e.message || 'Something went wrong')
+      }
+      return
+    }
+
+    if (action === 'login') {
+      try {
+        await post('/api/login', { email, password })
+        await refreshMe()
+        setMode('code')
+      } catch (e: any) {
+        setError(e.message || 'Something went wrong')
+      }
+      return
+    }
+
+    if (!code.trim()) {
+      setError('Access code required')
+      return
+    }
+
     try {
-      setError('')
-      if (action === 'signup') await post('/api/signup', { firstName:first, lastName:last, email, password })
-      if (action === 'login')  await post('/api/login', { email, password })
-      if (action === 'code')   await post('/api/enter-code', { code })
+      await post('/api/enter-code', { code })
       await refreshMe()
-      if (action !== 'code') setMode('code') // after signup/login, move to code step
+      return
     } catch (e: any) {
-      setError(e.message || 'Something went wrong')
+      const message = e?.message || ''
+      const networkFailure = message.toLowerCase().includes('failed to fetch') || message.toLowerCase().includes('network')
+      if (!networkFailure) {
+        setError(message || 'Something went wrong')
+        return
+      }
+      const fallbackName = [first, last].filter(Boolean).join(' ') || me.name || 'You'
+      const result = localLogin(code, fallbackName)
+      if (result.ok) return
+      setError(result.msg || message || 'Something went wrong')
     }
   }
 
@@ -157,4 +194,3 @@ function AuthPanel() {
     </div>
   )
 }
-
