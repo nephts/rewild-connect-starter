@@ -1,37 +1,29 @@
 // functions/api/enter-code.ts
 export async function onRequestPost({ request, env }: { request: Request; env: any }) {
-  // Ensure DB + seeds exist (this will create access_codes if missing)
-  await import('./_helpers').then(m => m.ensureDatabase(env));
+  const helpers = await import('./_helpers');
+  await helpers.ensureDatabase(env);
 
   const body = await request.json().catch(() => ({} as any));
-  const code = (body && body.code) || '';
+  const rawCode = typeof body.code === 'string' ? body.code : '';
+  const code = rawCode.trim().toUpperCase();
   if (!code) {
-    return new Response(JSON.stringify({ ok: false, error: 'code required' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return helpers.jsonResponse({ ok: false, error: 'code required' }, 400);
   }
 
-  // Look up the code in the DB (access_codes table). This verifies demo codes are present.
-  const helpers = await import('./_helpers');
+  const session = await helpers.getSessionFromRequest(request, env);
+  const uid = helpers.uidFromSession(session.uid);
+  if (!uid) return helpers.jsonResponse({ ok: false, error: 'unauthorized' }, 401);
+
   const row = await helpers.dbFirst(env, 'SELECT role, active FROM access_codes WHERE code = ?', code);
   if (!row || !row.role || Number(row.active || 0) === 0) {
-    return new Response(JSON.stringify({ ok: false, error: 'invalid or inactive code' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return helpers.jsonResponse({ ok: false, error: 'invalid or inactive code' }, 400);
   }
 
   const role = String(row.role);
+  await helpers.dbRun(env, 'UPDATE users SET role = ? WHERE id = ?', role, uid);
 
-  // Set a role cookie server-side. If COOKIE_SECRET is present in env, cookie will be signed.
+  const updated = await helpers.dbFirst(env, 'SELECT id, email, first_name, last_name, role FROM users WHERE id = ?', uid);
   const cookieHeader = await helpers.setSignedCookie('role', role, env?.COOKIE_SECRET, { path: '/', httpOnly: true, sameSite: 'lax', maxAge: 60 * 60 * 24 * 30 });
 
-  return new Response(JSON.stringify({ ok: true, role }), {
-    headers: {
-      'Content-Type': 'application/json',
-      'Set-Cookie': cookieHeader,
-    },
-  });
+  return helpers.jsonResponse({ ok: true, role, user: updated }, 200, { 'Set-Cookie': cookieHeader });
 }
-

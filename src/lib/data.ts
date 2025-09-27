@@ -57,7 +57,9 @@ export const initialShifts: Shift[] = [
     end: '12:00',
     max: 12,
     signedUpUserIds: [],
+    title: 'Dune Restoration Morning Crew',
     description: 'Planting beach grass and light fencing repairs.',
+    note: 'Bring work gloves and sun protection.',
   },
   {
     id: 'sh-2',
@@ -67,7 +69,8 @@ export const initialShifts: Shift[] = [
     end: '17:00',
     max: 20,
     signedUpUserIds: [],
-    description: 'Park-wide litter sweep and debris sorting.',
+    title: 'Park-Wide Cleanup',
+    description: 'Litter patrol and debris sorting across the park.',
   },
 ]
 

@@ -2,34 +2,39 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ---- Global input baseline (prevents white-on-white) ---- */
+/* ---- Global input baseline (soft light theme) ---- */
 input, textarea, select {
-  color: #fff;
-  background-color: #27272a; /* zinc-800 */
-  border: 1px solid rgba(255,255,255,.1);
-  border-radius: 0.75rem; /* rounded-xl */
+  color: #0f172a; /* slate-900 */
+  background-color: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 0.85rem;
 }
 
-::placeholder { color: rgba(255,255,255,.6); }
+::placeholder { color: rgba(15, 23, 42, 0.45); }
 
 /* Tame Safari/Chrome autofill turning fields white */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus {
-  -webkit-text-fill-color: #fff;
-  -webkit-box-shadow: 0 0 0px 1000px #27272a inset;
+  -webkit-text-fill-color: #0f172a;
+  -webkit-box-shadow: 0 0 0px 1000px #ffffff inset;
   transition: background-color 9999s ease-out 0s;
 }
 
 /* Tailwind component utilities used across the app */
 @layer components {
   .input {
-    @apply w-full rounded-xl bg-zinc-800 text-white placeholder:text-white/60
-           border border-white/10 p-2 outline-none focus:ring-2
-           focus:ring-emerald-500/50;
+    @apply w-full rounded-2xl bg-white text-slate-800 placeholder:text-slate-400
+           border border-slate-200 px-3 py-2 outline-none transition ring-emerald-200
+           focus:ring-2 focus:border-emerald-300;
   }
   .btn {
-    @apply inline-flex items-center gap-2 rounded-xl px-3 py-2
-           bg-emerald-600 hover:bg-emerald-500 text-white;
+    @apply inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium
+           text-white shadow-lg shadow-emerald-200/50
+           bg-gradient-to-r from-emerald-400 via-emerald-400 to-sky-400
+           hover:from-emerald-500 hover:to-sky-500 transition;
+  }
+  .card {
+    @apply rounded-3xl bg-white border border-slate-100 shadow-sm;
   }
 }

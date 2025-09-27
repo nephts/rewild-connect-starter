@@ -117,7 +117,9 @@ export async function ensureDatabase(env: any) {
       body TEXT NOT NULL,
       created_by TEXT NOT NULL,
       created_at INTEGER NOT NULL,
-      published INTEGER NOT NULL DEFAULT 1
+      published INTEGER NOT NULL DEFAULT 1,
+      publish_at INTEGER,
+      expires_at INTEGER
     );`,
     `CREATE TABLE IF NOT EXISTS messages (
       id TEXT PRIMARY KEY,
@@ -185,6 +187,24 @@ export async function ensureDatabase(env: any) {
     }
   } catch (err) {
     try { console.warn('ensureDatabase seed failed', err); } catch (e) {}
+  }
+
+  // Ensure announcements has scheduling columns (publish_at, expires_at)
+  try {
+    await env.DB.prepare('ALTER TABLE announcements ADD COLUMN publish_at INTEGER').run()
+  } catch (err: any) {
+    const msg = String(err?.message || '')
+    if (!msg.includes('duplicate column name')) {
+      try { console.warn('ensureDatabase: publish_at alter failed', err) } catch (e) {}
+    }
+  }
+  try {
+    await env.DB.prepare('ALTER TABLE announcements ADD COLUMN expires_at INTEGER').run()
+  } catch (err: any) {
+    const msg = String(err?.message || '')
+    if (!msg.includes('duplicate column name')) {
+      try { console.warn('ensureDatabase: expires_at alter failed', err) } catch (e) {}
+    }
   }
 }
 

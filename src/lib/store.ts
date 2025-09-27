@@ -9,6 +9,7 @@ interface State {
   role: Role
   me: User
   users: User[]
+  userNotes: Record<string, string>
   locations: Location[]
   shifts: Shift[]
   messages: Message[]
@@ -25,8 +26,10 @@ interface State {
   send: (toId: string, subject: string, content: string) => void
   upload: (title: string, description: string, locationId: string, url: string) => void
   addLocation: (name: string, address: string, description: string) => void
-  addShift: (locationId: string, date: string, start: string, end: string, max: number) => void
+  addShift: (locationId: string, date: string, start: string, end: string, max: number, title: string, description?: string, note?: string) => void
   adjustHours: (userId: string, delta: number) => void
+  setUserNote: (userId: string, note: string) => void
+  removeSignup: (shiftId: string, userId: string) => void
 }
 
 export const useStore = create<State>((set, get) => ({
@@ -36,6 +39,7 @@ export const useStore = create<State>((set, get) => ({
   role: 'Pending',
   me: { id: 'me', name: 'You', role: 'Pending', hours: 0 },
   users: [...demoUsers],
+  userNotes: {},
   locations: initialLocations,
   shifts: initialShifts,
   messages: initialMessages,
@@ -63,9 +67,12 @@ export const useStore = create<State>((set, get) => ({
   setNav: (nav) => set({ nav }),
 
   signup: (shiftId) => set(s => ({
-    shifts: s.shifts.map(sh => sh.id === shiftId && !sh.signedUpUserIds.includes(s.me.id)
-      ? { ...sh, signedUpUserIds: [...sh.signedUpUserIds, s.me.id] }
-      : sh)
+    shifts: s.shifts.map(sh => {
+      if (sh.id !== shiftId) return sh
+      if (sh.signedUpUserIds.includes(s.me.id)) return sh
+      if (sh.signedUpUserIds.length >= sh.max) return sh
+      return { ...sh, signedUpUserIds: [...sh.signedUpUserIds, s.me.id] }
+    })
   })),
 
   send: (toId, subject, content) => set(s => ({
@@ -80,11 +87,32 @@ export const useStore = create<State>((set, get) => ({
     locations: [...s.locations, { id: `loc-${Math.random().toString(36).slice(2,6)}`, name, address, description, capacity: 20, coordinator: 'TBD', equipment: [], activities: [], images: [] }]
   })),
 
-  addShift: (locationId, date, start, end, max) => set(s => ({
-    shifts: [...s.shifts, { id: `sh-${Math.random().toString(36).slice(2,6)}`, locationId, date, start, end, max, signedUpUserIds: [], description: 'Volunteer shift' }]
+  addShift: (locationId, date, start, end, max, title, description, note) => set(s => ({
+    shifts: [...s.shifts, {
+      id: `sh-${Math.random().toString(36).slice(2,6)}`,
+      locationId,
+      date,
+      start,
+      end,
+      max,
+      signedUpUserIds: [],
+      title: title || 'Volunteer shift',
+      description: description || 'Volunteer shift',
+      note,
+    }]
   })),
 
   adjustHours: (userId, delta) => set(s => ({
     users: s.users.map(u => u.id === userId ? { ...u, hours: (u.hours || 0) + delta } : u)
+  })),
+
+  setUserNote: (userId, note) => set(s => ({
+    userNotes: { ...s.userNotes, [userId]: note }
+  })),
+
+  removeSignup: (shiftId, userId) => set(s => ({
+    shifts: s.shifts.map(sh => sh.id === shiftId
+      ? { ...sh, signedUpUserIds: sh.signedUpUserIds.filter(id => id !== userId) }
+      : sh)
   })),
 }))

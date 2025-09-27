@@ -32,7 +32,9 @@ export interface Shift {
   end: string
   max: number
   signedUpUserIds: string[]
+  title: string
   description: string
+  note?: string
 }
 
 export interface Message {

@@ -69,6 +69,7 @@ app.post('/api/signup', async (c) => {
   `).bind(id, email, hash, firstName ?? null, lastName ?? null, now()).run()
 
   setCookie(c, 'uid', id, { httpOnly: true, sameSite: 'Lax', path: '/', maxAge: 60 * 60 * 24 * 30 })
+  setCookie(c, 'role', 'Pending', { httpOnly: true, sameSite: 'Lax', path: '/', maxAge: 60 * 60 * 24 * 30 })
   return c.json({ ok: true })
 })
 
@@ -80,6 +81,7 @@ app.post('/api/login', async (c) => {
   const ok = await bcrypt.compare(password, user.password_hash)
   if (!ok) return c.json({ error: 'invalid credentials' }, 401)
   setCookie(c, 'uid', user.id, { httpOnly: true, sameSite: 'Lax', path: '/', maxAge: 60 * 60 * 24 * 30 })
+  setCookie(c, 'role', user.role, { httpOnly: true, sameSite: 'Lax', path: '/', maxAge: 60 * 60 * 24 * 30 })
   return c.json({ ok: true })
 })
 
@@ -103,13 +105,15 @@ app.post('/api/enter-code', requireUser, async (c) => {
 
   const row = await c.env.DB
     .prepare('SELECT role, active FROM access_codes WHERE code = ?')
-    .bind(code)
+    .bind(code.toUpperCase())
     .first<{ role: Role; active: number }>()
   if (!row || row.active !== 1) return c.json({ error: 'invalid code' }, 400)
 
   const nextRole = row.role === 'SuperAdmin' ? 'Admin' : row.role
   await c.env.DB.prepare('UPDATE users SET role = ? WHERE id = ?').bind(nextRole, user.id).run()
-  return c.json({ ok: true, role: nextRole })
+  setCookie(c, 'role', nextRole, { httpOnly: true, sameSite: 'Lax', path: '/', maxAge: 60 * 60 * 24 * 30 })
+  const updated = await getUserById(c.env.DB, user.id)
+  return c.json({ ok: true, role: nextRole, user: updated })
 })
 
 // admin: list users
